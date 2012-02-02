@@ -17,14 +17,16 @@
 /**
  * Light PHP wrapper for the OAuth 2.0 protocol.
  *
- * This client is based on the OAuth2 specification draft v2.15
- * http://tools.ietf.org/html/draft-ietf-oauth-v2-15
+ * This client is based on the OAuth2 specification draft v2.23
+ * http://tools.ietf.org/html/draft-ietf-oauth-v2-23
  *
  * @author      Pierrick Charron <pierrick@webstart.fr>
  * @author      Anis Berejeb <anis.berejeb@gmail.com> 
  * @version     1.1
  */
 namespace OAuth2;
+
+use Exception;
 
 class Client
 {
@@ -175,18 +177,18 @@ class Client
     
     /**
      * getAuthenticationUrl
+     * The state parameters is highly recommended and should be used for preventing CSRF.
      *
      * @param string $auth_endpoint Url of the authentication endpoint
-     * @param string $redirect_uri  Redirection URI
-     * @param array  $extra_parameters  Array of extra parameters like scope or state (Ex: array('scope' => null, 'state' => ''))
+     * @param array  $extra_parameters  Array of extra parameters like scope or state 
+     *          (Ex: array('scope' => null, 'redirect_uri' => '', $state => ''))
      * @return string URL used for authentication
      */
-    public function getAuthenticationUrl($auth_endpoint, $redirect_uri, array $extra_parameters = array())
+    public function getAuthenticationUrl($auth_endpoint, array $extra_parameters = array())
     {
         $parameters = array_merge(array(
             'response_type' => 'code',
             'client_id'     => $this->client_id,
-            'redirect_uri'  => $redirect_uri
         ), $extra_parameters);
         return $auth_endpoint . '?' . http_build_query($parameters, null, '&');
     }
@@ -206,6 +208,7 @@ class Client
         }
         $grantTypeClassName = $this->convertToCamelCase($grant_type);
         $grantTypeClass =  __NAMESPACE__ . '\\GrantType\\' . $grantTypeClassName;
+
         if (!class_exists($grantTypeClass)) {
             throw new \InvalidArgumentException('unknown grant type ' . $grant_type);
         }
@@ -274,6 +277,11 @@ class Client
     /**
      * Fetch a protected ressource
      * 
+     *  http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer-16#section-2.3
+     * 
+     *  "Because of the security weaknesses associated with the URI method, ... , it SHOULD NOT be used
+        unless it is impossible to transport the access token in the "Authorization" request header field ..."
+     * 
      * @param string $protected_ressource_url Protected resource URL
      * @param array  $parameters Array of parameters
      * @param string $http_method HTTP Method to use (POST, PUT, GET, HEAD, DELETE)
@@ -311,6 +319,8 @@ class Client
 
     /**
      * Generate the MAC signature 
+     * 
+     * http://tools.ietf.org/html/draft-ietf-oauth-v2-http-mac-00
      *
      * @param string $url Called URL
      * @param array  $parameters Parameters
@@ -319,8 +329,8 @@ class Client
      */
     private function generateMACSignature($url, $parameters, $http_method)
     {
-        $timestamp = time();
-        $nonce = uniqid();
+        $timestamp = time() / 1000;
+        $nonce = uniqid('', true);
         $query_parameters = array();
         $body_hash = '';
         $parsed_url = parse_url($url);
@@ -345,18 +355,16 @@ class Client
         }
 
         $signature = base64_encode(hash_hmac($this->access_token_algorithm, 
-            $this->access_token . "\n"
-            . $timestamp . "\n" 
-            . $nonce . "\n" 
-            . $body_hash . "\n"
-            . $http_method . "\n" 
-            . $parsed_url['host'] . "\n"
-            . $parsed_url['port'] . "\n"
-            . $parsed_url['path'] . "\n"
-            . implode($query_parameters, "\n")
+            $timestamp . ":". $nonce
+            . $http_method                
+            . $parsed_url['path']                
+            . $parsed_url['host']
+            . $parsed_url['port']                
+            . $body_hash
+            . implode($query_parameters)
             , $this->access_token_secret));
-
-        return 'token="' . $this->access_token . '", timestamp="' . $timestamp . '", nonce="' . $nonce . '", signature="' . $signature . '"';
+        
+        return 'id="' . $this->access_token . '", nonce="' . $nonce . '", mac="' . $mac . '"';
     }
 
     /**
@@ -472,8 +480,4 @@ class Client
         array_walk($parts, function(&$item) { $item = ucfirst($item);});
         return implode('', $parts);
     }
-}
-
-class Exception extends \Exception
-{
 }

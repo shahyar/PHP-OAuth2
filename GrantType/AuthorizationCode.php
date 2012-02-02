@@ -16,6 +16,8 @@ class AuthorizationCode implements IGrantType
     /**
      * Adds a specific Handling of the parameters
      * 
+     * http://tools.ietf.org/html/draft-ietf-oauth-v2-23#section-4.1.1
+     * 
      * @return array of Specific parameters to be sent.
      * @param  mixed  $parameters the parameters array (passed by reference)
      */
@@ -25,9 +27,9 @@ class AuthorizationCode implements IGrantType
         {
             throw new \Exception('The \'code\' parameter must be defined for the Authorization Code grant type');
         }
-        elseif (!isset($parameters['redirect_uri']))
+        elseif (!isset($parameters['client_id']))
         {
-            throw new \Exception('The \'redirect_uri\' parameter must be defined for the Authorization Code grant type');
+            throw new \Exception('The \'client_id\' parameter must be defined for the Authorization Code grant type');
         }
     }
 }
