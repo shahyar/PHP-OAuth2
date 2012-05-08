@@ -4,7 +4,7 @@
                     ___________________________________
 
 
-AUTHOR & CONTACT
+ORIGINAL AUTHORS & CONTACT
 ================
 
 Charron Pierrick
@@ -18,6 +18,9 @@ DOCUMENTATION & DOWNLOAD
 ========================
 
 Latest version is available on github at :
+    - https://github.com/shahyar/PHP-OAuth2
+
+Original version at :
     - https://github.com/adoy/PHP-OAuth2
 
 Documentation can be found on : 
