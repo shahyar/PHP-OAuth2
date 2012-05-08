@@ -413,9 +413,9 @@ class Client
             case self::HTTP_METHOD_DELETE:
             case self::HTTP_METHOD_GET:
                 if (is_array($parameters)) {
-                    $url .= '?' . http_build_query($parameters, null, '&');
+                    $url .= (strpos($url, '?') === false ? '?' : '&') . http_build_query($parameters, null, '&');
                 } elseif ($parameters) {
-                    $url .= '?' . $parameters;
+                    $url .= (strpos($url, '?') === false ? '?' : '&') . $parameters;
                 }
                 break;
             default:
