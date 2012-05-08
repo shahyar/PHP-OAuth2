@@ -145,7 +145,7 @@ class Client
         if (!extension_loaded('curl')) {
             throw new \Exception('The PHP exention curl must be installed to use this library.');
         }
-        
+
         $this->client_id     = $client_id;
         $this->client_secret = $client_secret;
         $this->client_auth   = $client_auth;
@@ -190,7 +190,7 @@ class Client
             'response_type' => 'code',
             'client_id'     => $this->client_id,
         ), $extra_parameters);
-        return $auth_endpoint . '?' . http_build_query($parameters, null, '&');
+        return $auth_endpoint . (strpos($auth_endpoint, '?') === false ? '?' : '&') . http_build_query($parameters, null, '&');
     }
     
     /**
@@ -354,7 +354,7 @@ class Client
             sort($query_parameters);
         }
 
-        $signature = base64_encode(hash_hmac($this->access_token_algorithm, 
+        $mac = base64_encode(hash_hmac($this->access_token_algorithm,
             $timestamp . ":". $nonce
             . $http_method                
             . $parsed_url['path']                
