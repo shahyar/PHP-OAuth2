@@ -444,19 +444,26 @@ class Client
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 1);
         }
+        curl_setopt($ch, CURLOPT_HEADER, true);
         $result = curl_exec($ch);
         $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+
+        $result = $this->parseHeaders($result);
+
         if ($curl_error = curl_error($ch)) {
+            // Handle cURL errors
             throw new Exception($curl_error, Exception::CURL_ERROR);
         } else {
-            $json_decode = json_decode($result, true);
+            // Parse the data
+            $json_decode = json_decode($result['body'], true);
         }
         curl_close($ch);
 
         return array(
-            'result' => (null === $json_decode) ? $result : $json_decode,
+            'result' => (null === $json_decode) ? $result['body'] : $json_decode,
             'code' => $http_code,
+            'headers' => $result['headers'],
             'content_type' => $content_type
         );
     }
@@ -484,6 +491,43 @@ class Client
         array_walk($parts, function(&$item) { $item = ucfirst($item);});
         return implode('', $parts);
     }
+
+    /**
+     * Parses out the header, returns an array with headers => [], body: string
+     * @param string $header
+     * @return array
+     */
+    private function parseHeaders($header)
+    {
+        $return = array('headers' => array(), 'body' => '');
+
+        $fields = explode("\r\n", preg_replace('/\x0D\x0A[\x09\x20]+/', ' ', $header));
+
+        // Skip the first one; it's the HTTP response code
+        while (($field = next($fields)) !== false) {
+            if (preg_match('/^([^:]+): (.+)$/m', $field, $match)) {
+                $match[1] = preg_replace('/(?<=^|[\x09\x20\x2D])./e', 'strtoupper("\0")', strtolower(trim($match[1])));
+                if (isset($return['headers'][$match[1]])) {
+                    $return['headers'][$match[1]] = array($return['headers'][$match[1]], $match[2]);
+                } else {
+                    $return['headers'][$match[1]] = trim($match[2]);
+                }
+                $field = null;
+            } else {
+                break;
+            }
+        }
+
+        // Still appears to be fields. When !field but next field, this is the split between headers and body.
+        if ($field !== null && ($field || ($field = next($fields)))) {
+            do {
+                $return['body'] .= $field;
+            } while (($field = next($fields)) !== false && ($return['body'] .= "\r\n"));
+        }
+
+        return $return;
+    }
+
 }
 
 class Exception extends \Exception
