@@ -175,6 +175,16 @@ class Client
     }
 
     /**
+     * Get the current access token, if any
+     *
+     * @return string Access Token
+     */
+    public function getCurrentAccessToken()
+    {
+        return $this->access_token;
+    }
+
+    /**
      * getAuthenticationUrl
      * The state parameters is highly recommended and should be used for preventing CSRF.
      *
